@@ -250,7 +250,7 @@ export default function LoginPage() {
                 opacity: loading ? .7 : 1,
               }}
             >
-              {loading ? 'Iniciando…' : 'Continuar →'}
+              {loading ? '⏳ Preparando tu espacio…' : 'Continuar →'}
             </button>
           </form>
         </div>

@@ -114,49 +114,39 @@ export default function OnboardingPage() {
   }
 
   // ── Completar paso ───────────────────────────────────────
-  async function completeStep(step) {
+  function completeStep(step) {
     if (!step.progressStep || saving) return;
     const key = `step${step.progressStep}`;
-    if (progress[key]) return; // ya completado
+    if (progress[key]) return;
 
-    setSaving(true);
+    // Actualizar UI y sessionStorage de inmediato (optimista)
     const newProgress = { ...progress, [key]: true };
     setProgress(newProgress);
-
-    // Actualizar sessionStorage
     const sess = JSON.parse(sessionStorage.getItem('session'));
     sess.progress = newProgress;
     sessionStorage.setItem('session', JSON.stringify(sess));
 
-    try {
-      await fetch('/api/gas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'saveProgress',
-          email: session.email,
-          stepNumber: step.progressStep,
-          dateISO: new Date().toISOString(),
-        }),
-      });
-      showToast('¡Paso completado! 🎉', 'success');
-    } catch {
-      showToast('No se pudo guardar en línea, pero tu progreso está registrado localmente.', 'warning');
-    }
-
-    setSaving(false);
-
-    // Navegar directo sin verificar bloqueo — el paso acaba de completarse
+    // Navegar de inmediato sin esperar al servidor
     const nextIdx = currentIdx + 1;
     if (nextIdx < steps.length) {
-      setTimeout(() => {
-        setShowFinal(false);
-        setCurrentIdx(nextIdx);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 600);
+      setShowFinal(false);
+      setCurrentIdx(nextIdx);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      setTimeout(() => goToFinal(), 600);
+      goToFinal();
     }
+
+    // Guardar en Sheets en segundo plano (sin bloquear la UI)
+    fetch('/api/gas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'saveProgress',
+        email: session.email,
+        stepNumber: step.progressStep,
+        dateISO: new Date().toISOString(),
+      }),
+    }).catch(() => {});
   }
 
   // ── Feedback final ───────────────────────────────────────
